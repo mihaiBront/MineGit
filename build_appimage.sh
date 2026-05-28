@@ -61,7 +61,8 @@ rm -rf "$PYINSTALLER_WORK" "$PYINSTALLER_SPEC" "$PYINSTALLER_DIST" "$APPDIR"
   "$SCRIPT_DIR/src/MineGit.py"
 
 mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
-cp "$PYINSTALLER_DIST/$APP_NAME" "$APPDIR/usr/bin/$APP_NAME"
+# Copy the whole onedir payload (binary + _internal runtime libs).
+cp -a "$PYINSTALLER_DIST/." "$APPDIR/usr/bin/"
 cp "$ICON_PATH" "$APPDIR/usr/share/icons/hicolor/256x256/apps/minegit.png"
 cp "$ICON_PATH" "$APPDIR/minegit.png"
 ln -sf "usr/share/icons/hicolor/256x256/apps/minegit.png" "$APPDIR/.DirIcon"
