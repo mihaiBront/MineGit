@@ -1,0 +1,59 @@
+# Minecraft Java world gitignore template
+#
+# How to use:
+# 1) Copy this file into your world folder as ".gitignore".
+# 2) Commit the world folder contents you want to track.
+# 3) Uncomment/comment sections below based on your workflow.
+#
+# This default profile is "map/world focused":
+# - Keep world terrain + game state
+# - Ignore lock/temp/backups
+# - Ignore per-player progression files to reduce commit noise
+
+############################
+# Always ignore (transient)
+############################
+session.lock
+level.dat_old
+level.dat_new
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.swp
+
+# Common editor/mod temporary folders
+##MCEDIT.TEMP##
+
+###############################################
+# Default: ignore per-player progress/noisy data
+# (comment these lines out for full player backups)
+###############################################
+# playerdata/
+# players/
+# stats/
+# advancements/
+
+#############################################################
+# Keep world content (these are not ignored by default):
+# - level.dat
+# - region/
+# - entities/
+# - poi/
+# - data/
+# - DIM-1/ and DIM1/
+# - dimensions/
+# - datapacks/
+# - your custom lock file (player.lock)
+#############################################################
+
+#############################################################
+# Optional: if you want absolutely everything tracked
+# including player state/progression, comment out the 4 lines:
+#   playerdata/
+#   players/
+#   stats/
+#   advancements/
+#############################################################
