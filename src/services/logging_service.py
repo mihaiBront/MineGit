@@ -29,11 +29,11 @@ def configure_tkinter_logging(text_widget: tk.Text, logger_name: str = "minegit"
         if isinstance(handler, TkTextHandler):
             return logger
 
-    text_widget.tag_config("DEBUG", foreground="#9E9E9E")
-    text_widget.tag_config("INFO", foreground="#000000")
-    text_widget.tag_config("WARNING", foreground="#FFD166")
-    text_widget.tag_config("ERROR", foreground="#FF6B6B")
-    text_widget.tag_config("CRITICAL", foreground="#EF476F")
+    text_widget.tag_config("DEBUG", foreground="#636363")
+    text_widget.tag_config("INFO", foreground="#264eff")
+    text_widget.tag_config("WARNING", foreground="#b57300")
+    text_widget.tag_config("ERROR", foreground="#b53000")
+    text_widget.tag_config("CRITICAL", foreground="#6b0022")
 
     handler = TkTextHandler(text_widget)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S"))
