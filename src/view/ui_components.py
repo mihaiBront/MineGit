@@ -15,6 +15,15 @@ REFRESH_BG = "#1976D2"
 REFRESH_ACTIVE_BG = "#1565C0"
 BUTTON_FG = "white"
 BUTTON_DISABLED_FG = "#F5F5F5"
+STATUS_TEXT_FG = "#FFFFFF"
+
+STATUS_COLORS = {
+    "[OK]": "#2E7D32",
+    "[PLAY]": "#1565C0",
+    "[WAIT]": "#B26A00",
+    "[ERR]": "#B53000",
+}
+DEFAULT_STATUS_COLOR = "#455A64"
 
 
 @dataclass
@@ -23,7 +32,11 @@ class MainViewComponents:
     start_button: tk.Button
     stop_button: tk.Button
     refresh_button: tk.Button
+    status_container: tk.Frame
+    status_icon_label: tk.Label
+    status_text_label: tk.Label
     log_widget: tk.Text
+    show_debug_checkbutton: ttk.Checkbutton
 
 
 def _create_action_button(
@@ -56,6 +69,8 @@ def build_main_layout(
     on_refresh_clicked: Callable[[], None],
     on_start_playing: Callable[[], None],
     on_stop_playing: Callable[[], None],
+    show_debug_var: tk.BooleanVar,
+    on_toggle_debug_logs: Callable[[], None],
 ) -> MainViewComponents:
     root = ttk.Frame(parent, padding=14)
     root.pack(fill=tk.BOTH, expand=True)
@@ -96,13 +111,34 @@ def build_main_layout(
     )
     stop_button.grid(row=4, column=2, sticky=tk.EW, padx=(4, 0))
 
-    indicator = ttk.Frame(root)
-    indicator.grid(row=5, column=0, columnspan=3, sticky=tk.EW, pady=(12, 6))
-    ttk.Label(indicator, textvariable=status_icon_var, width=8).grid(row=0, column=0, sticky=tk.W)
-    ttk.Label(indicator, textvariable=status_var).grid(row=0, column=1, sticky=tk.W)
+    status_container = tk.Frame(root, bg=DEFAULT_STATUS_COLOR, padx=12, pady=8)
+    status_container.grid(row=5, column=0, columnspan=3, pady=(12, 6))
+    status_icon_label = tk.Label(
+        status_container,
+        textvariable=status_icon_var,
+        width=8,
+        bg=DEFAULT_STATUS_COLOR,
+        fg=STATUS_TEXT_FG,
+    )
+    status_icon_label.grid(row=0, column=0, sticky=tk.W)
+    status_text_label = tk.Label(
+        status_container,
+        textvariable=status_var,
+        bg=DEFAULT_STATUS_COLOR,
+        fg=STATUS_TEXT_FG,
+    )
+    status_text_label.grid(row=0, column=1, sticky=tk.W)
 
     log_widget = tk.Text(root, height=12, wrap=tk.WORD, state=tk.DISABLED)
     log_widget.grid(row=6, column=0, columnspan=3, sticky=tk.NSEW)
+
+    show_debug_checkbutton = ttk.Checkbutton(
+        root,
+        text="Show debug logs",
+        variable=show_debug_var,
+        command=on_toggle_debug_logs,
+    )
+    show_debug_checkbutton.grid(row=7, column=0, columnspan=3, sticky=tk.W, pady=(8, 0))
 
     root.columnconfigure(0, weight=1)
     root.columnconfigure(1, weight=1)
@@ -114,7 +150,11 @@ def build_main_layout(
         start_button=start_button,
         stop_button=stop_button,
         refresh_button=refresh_button,
+        status_container=status_container,
+        status_icon_label=status_icon_label,
+        status_text_label=status_text_label,
         log_widget=log_widget,
+        show_debug_checkbutton=show_debug_checkbutton,
     )
 
 
@@ -134,3 +174,15 @@ def update_play_buttons_state(
         bg=STOP_ENABLED_BG if stop_enabled else STOP_DISABLED_BG,
         activebackground=STOP_ENABLED_ACTIVE_BG if stop_enabled else STOP_DISABLED_BG,
     )
+
+
+def update_status_indicator(
+    status_container: tk.Frame,
+    status_icon_label: tk.Label,
+    status_text_label: tk.Label,
+    icon: str,
+) -> None:
+    status_color = STATUS_COLORS.get(icon, DEFAULT_STATUS_COLOR)
+    status_container.config(bg=status_color)
+    status_icon_label.config(bg=status_color, fg=STATUS_TEXT_FG)
+    status_text_label.config(bg=status_color, fg=STATUS_TEXT_FG)
