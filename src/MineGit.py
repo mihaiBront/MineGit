@@ -38,6 +38,7 @@ class MineGitApp(tk.Tk):
     def _new_controller(self) -> GitController:
         repository = self.repo_path_var.get().strip()
         lock_path = self.lock_path_var.get().strip() or "player.lock"
+        self.logger.debug("Creating controller with repo='%s' lock='%s'.", repository, lock_path)
 
         if not repository:
             raise GitControllerError("Please provide a repository path.")
@@ -53,12 +54,21 @@ class MineGitApp(tk.Tk):
             self.repo_path_var.set(selected_directory)
             self.logger.info("Repository selected: %s", selected_directory)
             self.refresh_status(run_fetch=True)
+        else:
+            self.logger.debug("Repository browse canceled by user.")
 
     def on_refresh_clicked(self) -> None:
-        self.logger.info("Manual refresh requested.")
+        self.logger.debug("Manual refresh requested.")
         self.refresh_status(run_fetch=True)
 
     def _set_status(self, icon: str, text: str, start_enabled: bool, stop_enabled: bool) -> None:
+        self.logger.debug(
+            "Applying UI status icon=%s start_enabled=%s stop_enabled=%s text=%s",
+            icon,
+            start_enabled,
+            stop_enabled,
+            text,
+        )
         self.status_icon_var.set(icon)
         self.status_var.set(text)
         update_play_buttons_state(
@@ -69,13 +79,19 @@ class MineGitApp(tk.Tk):
         )
 
     def initialize_status(self) -> None:
-        self.logger.info("Running initial repository status check.")
+        self.logger.debug("Running initial repository status check.")
         self.refresh_status(run_fetch=True)
 
     def refresh_status(self, run_fetch: bool, allow_auto_pull: bool = True) -> None:
+        self.logger.debug(
+            "Refreshing status run_fetch=%s allow_auto_pull=%s",
+            run_fetch,
+            allow_auto_pull,
+        )
         try:
             controller = self._new_controller()
             if run_fetch:
+                self.logger.debug("Running fetch before computing status.")
                 controller.fetch()
 
             ahead, behind = controller.get_sync_counts()
@@ -83,6 +99,14 @@ class MineGitApp(tk.Tk):
             remote_owner = controller.get_remote_lock_owner()
             username = controller.get_git_username()
             lock_is_mine = local_owner == username or remote_owner == username
+            self.logger.debug(
+                "Status snapshot ahead=%s behind=%s local_owner=%s remote_owner=%s username=%s",
+                ahead,
+                behind,
+                local_owner,
+                remote_owner,
+                username,
+            )
 
             if lock_is_mine:
                 message = f"You are already playing as {username}."
@@ -98,7 +122,7 @@ class MineGitApp(tk.Tk):
                     return
 
                 if allow_auto_pull:
-                    self.logger.info("Behind remote with no lock owner. Pulling updates automatically.")
+                    self.logger.debug("Behind remote with no lock owner. Pulling updates automatically.")
                     controller.pull_latest()
                     self.refresh_status(run_fetch=False, allow_auto_pull=False)
                     return
@@ -128,7 +152,7 @@ class MineGitApp(tk.Tk):
                         "Resolve this state manually before continuing."
                     )
                     self._set_status("[ERR]", message, start_enabled=False, stop_enabled=False)
-                self.logger.warning(message)
+                self.logger.info(message)
                 return
 
             message = "Repository is in sync. You can start playing."
@@ -150,6 +174,7 @@ class MineGitApp(tk.Tk):
             messagebox.showerror("MineGit", str(error))
 
     def on_start_playing(self) -> None:
+        self.logger.debug("Start button clicked.")
         try:
             controller = self._new_controller()
             result = controller.start_playing()
@@ -164,6 +189,7 @@ class MineGitApp(tk.Tk):
                 self.refresh_status(run_fetch=True)
         except GitControllerError as error:
             self._set_status("[ERR]", str(error), start_enabled=False, stop_enabled=False)
+            self.logger.error("Git controller error while starting play session: %s", error)
             messagebox.showerror("MineGit", str(error))
         except Exception as error:
             self._set_status(
@@ -176,6 +202,7 @@ class MineGitApp(tk.Tk):
             messagebox.showerror("MineGit", str(error))
 
     def on_stop_playing(self) -> None:
+        self.logger.debug("Stop button clicked.")
         try:
             controller = self._new_controller()
             result = controller.stop_playing()
@@ -190,6 +217,7 @@ class MineGitApp(tk.Tk):
                 self.refresh_status(run_fetch=True)
         except GitControllerError as error:
             self._set_status("[ERR]", str(error), start_enabled=False, stop_enabled=False)
+            self.logger.error("Git controller error while stopping play session: %s", error)
             messagebox.showerror("MineGit", str(error))
         except Exception as error:
             self._set_status(
@@ -203,7 +231,7 @@ class MineGitApp(tk.Tk):
 
 
 def main() -> None:
-    logging.getLogger("minegit").setLevel(logging.INFO)
+    logging.getLogger("minegit").setLevel(logging.DEBUG)
     app = MineGitApp()
     app.mainloop()
 

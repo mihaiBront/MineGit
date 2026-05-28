@@ -22,7 +22,7 @@ class TkTextHandler(logging.Handler):
 
 def configure_tkinter_logging(text_widget: tk.Text, logger_name: str = "minegit") -> logging.Logger:
     logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
     for handler in logger.handlers:
@@ -36,6 +36,7 @@ def configure_tkinter_logging(text_widget: tk.Text, logger_name: str = "minegit"
     text_widget.tag_config("CRITICAL", foreground="#6b0022")
 
     handler = TkTextHandler(text_widget)
+    handler.setLevel(logging.DEBUG)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S"))
     logger.addHandler(handler)
 
