@@ -1,9 +1,12 @@
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
 
 import git
+
+logger = logging.getLogger("minegit.controller")
 
 
 class GitControllerError(RuntimeError):
@@ -37,11 +40,14 @@ class GitController:
             raise GitControllerError("Repository needs an 'origin' remote configured.")
 
         self.remote = self.repo.remotes.origin
+        logger.info("Initialized controller for repo: %s", self.repository_path)
 
     def fetch(self) -> None:
+        logger.info("Fetching from remote '%s'.", self.remote.name)
         self.remote.fetch()
 
     def pull_latest(self) -> None:
+        logger.info("Pulling latest changes for branch '%s'.", self.repo.active_branch.name)
         self.remote.pull(self.repo.active_branch.name)
 
     def get_sync_counts(self) -> Tuple[int, int]:
@@ -55,14 +61,17 @@ class GitController:
 
         counts = self.repo.git.rev_list("--left-right", "--count", f"{branch_name}...{remote_ref_name}")
         ahead_raw, behind_raw = counts.strip().split()
+        logger.info("Sync status for '%s': ahead=%s behind=%s", branch_name, ahead_raw, behind_raw)
         return (int(ahead_raw), int(behind_raw))
 
     def start_playing(self) -> OperationResult:
         player_name = self.get_git_username()
+        logger.info("Starting play flow as '%s'.", player_name)
         self.fetch()
 
         remote_lock_owner = self.get_remote_lock_owner()
         if remote_lock_owner and remote_lock_owner != player_name:
+            logger.warning("Start blocked; lock is currently owned by '%s'.", remote_lock_owner)
             return OperationResult(
                 success=False,
                 message=f"{remote_lock_owner} is currently playing. Join their match first.",
@@ -70,6 +79,7 @@ class GitController:
             )
 
         if self.repo.is_dirty(untracked_files=True):
+            logger.error("Start blocked; local repository has uncommitted changes.")
             raise GitControllerError(
                 "Local repository has uncommitted changes. Commit or stash before starting."
             )
@@ -80,12 +90,14 @@ class GitController:
         self.repo.index.add([self.lock_file_relative_path])
 
         if not self.repo.is_dirty(untracked_files=True):
+            logger.info("No changes after writing lock; already playing as '%s'.", player_name)
             return OperationResult(
                 success=True,
                 message=f"Already playing as {player_name}. Lock was already up-to-date.",
                 lock_owner=player_name,
             )
 
+        logger.info("Committing and pushing start-playing state for '%s'.", player_name)
         self.repo.index.commit(f"started playing as {player_name}")
         self.remote.push(self.repo.active_branch.name)
         return OperationResult(
@@ -96,10 +108,12 @@ class GitController:
 
     def stop_playing(self) -> OperationResult:
         player_name = self.get_git_username()
+        logger.info("Stopping play flow as '%s'.", player_name)
         self.fetch()
 
         remote_lock_owner = self.get_remote_lock_owner()
         if remote_lock_owner and remote_lock_owner != player_name:
+            logger.warning("Stop blocked; lock is currently owned by '%s'.", remote_lock_owner)
             return OperationResult(
                 success=False,
                 message=f"Cannot stop this session. Current lock owner is {remote_lock_owner}.",
@@ -110,12 +124,14 @@ class GitController:
         self.repo.git.add(A=True)
 
         if not self.repo.is_dirty(untracked_files=True):
+            logger.info("No changes to commit when stopping as '%s'.", player_name)
             return OperationResult(
                 success=True,
                 message=f"No changes to commit. Lock already clear for {player_name}.",
                 lock_owner=None,
             )
 
+        logger.info("Committing and pushing stop-playing state for '%s'.", player_name)
         self.repo.index.commit(f"stopped playing as {player_name}")
         self.remote.push(self.repo.active_branch.name)
         return OperationResult(
